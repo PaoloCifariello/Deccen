@@ -19,9 +19,14 @@ protocol.link p2p.deccen.core.protocols.NeighborsProtocol
 #Initial capacity of the neighbors list.
 protocol.link.capacity 2
 
-protocol.avg p2p.deccen.core.protocols.ClosenessCentralityCD
-protocol.avg.linkable link
-protocol.avg.step 1
+protocol.cc p2p.deccen.core.protocols.ClosenessCentralityCD
+protocol.cc.linkable link
+protocol.cc.step 1
+
+#protocol.stress p2p.deccen.core.protocols.StressCentralityCD
+#protocol.sc.linkable link
+#protocol.sc.step 1
+#protocol.sc.ccProtocol cc
 
 ################### initialization ======================
 
@@ -30,11 +35,11 @@ init.rndlink.k 4
 init.rndlink.protocol link
 
 init.sch CDScheduler
-init.sch.protocol avg
+init.sch.protocol cc
 init.sch.randstart
 
 init.initRoot InitRootNode
-init.initRoot.protocol avg
+init.initRoot.protocol cc
 init.initRoot.initAll true
 
 ################ control ==============================

@@ -5,34 +5,9 @@ import peersim.core.Node;
 /**
  * Created by paolocifariello.
  */
-public class RequestMessage implements Message {
+public class RequestMessage extends Message {
 
-    /**
-     * Numeric value of the node src
-     */
-    private int value;
-    /**
-     * Source node
-     */
-    public Node source;
-
-    /**
-     * Original source node
-     */
-    public Node originalSource;
-
-    /**
-     * Create a new request message with the
-     * specified numeric value and source node
-     */
-    public RequestMessage(Node originalSource, Node source, int value) {
-        this.originalSource = originalSource;
-        this.source = source;
-        this.value = value;
-    }
-
-    @Override
-    public int getValue() {
-        return value;
+    public RequestMessage(Node source, Node destination, ClosenessCentralityPayload ccp) {
+        super(source, destination, ccp);
     }
 }

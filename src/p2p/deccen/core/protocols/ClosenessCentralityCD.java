@@ -1,5 +1,6 @@
 package p2p.deccen.core.protocols;
 
+import p2p.deccen.core.transport.ClosenessCentralityPayload;
 import p2p.deccen.core.transport.Message;
 import p2p.deccen.core.transport.RequestMessage;
 import p2p.deccen.core.transport.ResponseMessage;
@@ -26,7 +27,10 @@ public class ClosenessCentralityCD extends DoubleVectorHolder<Node, Message>
     public boolean root = false;
 
     public ClosenessCentralityCD(String prefix) {
+    }
 
+    public boolean isStable() {
+        return this.distances.size() == Network.size() - 1;
     }
 
     public void setRoot() {
@@ -41,7 +45,7 @@ public class ClosenessCentralityCD extends DoubleVectorHolder<Node, Message>
     public void nextCycle(Node node, int pid) {
         if (root) {
             NeighborsProtocol neighbors = (NeighborsProtocol) node.getProtocol(FastConfig.getLinkable(pid));
-            sendPing(node, node, neighbors.getAll(), 1, pid);
+            sendPing(node, neighbors.getAll(), node, 1, pid);
             root = false;
         }
 
@@ -56,6 +60,45 @@ public class ClosenessCentralityCD extends DoubleVectorHolder<Node, Message>
         }
     }
 
+    private void sendPing(Node source, Node[] destinations, Node originalSource, int distance, int pid) {
+        for (Node destination : destinations) {
+            if (destination.isUp())
+                sendPing(source, destination, originalSource, distance, pid);
+        }
+    }
+
+    private void sendPing(Node source, Node destination, Node originalSource, int distance, int pid) {
+        RequestMessage rMessage = new RequestMessage(source, destination, new ClosenessCentralityPayload(originalSource, distance));
+        ClosenessCentralityCD cced = (ClosenessCentralityCD) destination.getProtocol(pid);
+        cced.addMessage(rMessage);
+    }
+
+    private void processMessage(Node node, Message message, int pid) {
+        ClosenessCentralityPayload ccp = (ClosenessCentralityPayload) message.getPayload();
+
+        if (message instanceof RequestMessage) {
+            /** the source did already send a ping to me */
+            if (vec1.contains(ccp.getOriginalSource()))
+                return;
+
+            sendPong(ccp.getOriginalSource(), node, ccp.getDistance(), pid);
+            vec1.add(ccp.getOriginalSource());
+
+            NeighborsProtocol neighborsLinkable = (NeighborsProtocol) node.getProtocol(FastConfig.getLinkable(pid));
+            Node[] neighbors = neighborsLinkable.getAllExcept(new Node[] {message.getSource(), ccp.getOriginalSource()});
+            sendPing(node, neighbors, ccp.getOriginalSource(), ccp.getDistance() + 1, pid);
+        } else {
+            distances.put(message.getSource(), ccp.getDistance());
+        }
+
+    }
+
+    private void sendPong(Node originalSource, Node node, int distance, int pid) {
+        ResponseMessage rMessage = new ResponseMessage(node, originalSource, new ClosenessCentralityPayload(node, distance));
+        ClosenessCentralityCD cced = (ClosenessCentralityCD) originalSource.getProtocol(pid);
+        cced.addMessage(rMessage);
+    }
+
     private int calculateClosenessCentrality() {
         int totalDistance = 0;
         int totalNodes = 0;
@@ -66,47 +109,6 @@ public class ClosenessCentralityCD extends DoubleVectorHolder<Node, Message>
         }
 
         return totalDistance/totalNodes;
-    }
-
-    private void processMessage(Node node, Message message, int pid) {
-        if (message instanceof RequestMessage) {
-            /** Reply with a Response message */
-            RequestMessage rMessage = (RequestMessage) message;
-
-            /** the source did already send a ping to me */
-            if (vec1.contains(rMessage.originalSource))
-                return;
-
-            sendPong(rMessage.originalSource, node, rMessage.getValue(), pid);
-            vec1.add(rMessage.originalSource);
-
-            NeighborsProtocol neighborsLinkable = (NeighborsProtocol) node.getProtocol(FastConfig.getLinkable(pid));
-            Node[] neighbors = neighborsLinkable.getAllExcept(new Node[] {rMessage.source, rMessage.originalSource});
-            sendPing(rMessage.originalSource, node, neighbors, rMessage.getValue() + 1, pid);
-        } else {
-            ResponseMessage rMessage = (ResponseMessage) message;
-            distances.put(rMessage.getSource(), rMessage.getValue());
-        }
-
-    }
-
-    private void sendPong(Node originalSource, Node node, int value, int pid) {
-        ResponseMessage rMessage = new ResponseMessage(value, node);
-        ClosenessCentralityCD cced = (ClosenessCentralityCD) originalSource.getProtocol(pid);
-        cced.addMessage(rMessage);
-    }
-
-    private void sendPing(Node originalSource, Node source, Node[] destinations, int distance, int pid) {
-        for (Node destination : destinations) {
-            if (destination.isUp())
-                sendPing(originalSource, source, destination, distance, pid);
-        }
-    }
-
-    private void sendPing(Node originalSource, Node source, Node destination, int distance, int pid) {
-        RequestMessage rMessage = new RequestMessage(originalSource, source, distance);
-        ClosenessCentralityCD cced = (ClosenessCentralityCD) destination.getProtocol(pid);
-        cced.addMessage(rMessage);
     }
 
     private void addMessage(Message rMessage) {
