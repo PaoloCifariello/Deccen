@@ -1,0 +1,40 @@
+################### global variables ===========================
+
+# network size
+SIZE 4
+
+# parameters of periodic execution
+CYCLES 20
+CYCLE SIZE*10000
+
+random.seed 1234567890
+network.size SIZE
+simulation.cycles CYCLES
+
+
+################### protocols ===========================
+
+#Linkable protocol to store neighbors
+protocol.link p2p.deccen.core.protocols.NeighborsProtocol
+#Initial capacity of the neighbors list.
+protocol.link.capacity 2
+
+protocol.avg p2p.deccen.core.protocols.ClosenessCentralityCD
+protocol.avg.linkable link
+protocol.avg.step 1
+
+################### initialization ======================
+
+init.rndlink WireKOut
+init.rndlink.k 4
+init.rndlink.protocol link
+
+init.sch CDScheduler
+init.sch.protocol avg
+init.sch.randstart
+
+init.initRoot InitRootNode
+init.initRoot.protocol avg
+init.initRoot.initAll true
+
+################ control ==============================
