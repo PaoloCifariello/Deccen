@@ -7,13 +7,19 @@ import peersim.core.Node;
  */
 public class StressCentralityPayload extends ClosenessCentralityPayload {
     private int minPaths;
+    private Node originalDestination;
 
-    public StressCentralityPayload(Node originalSource, int distance, int minPaths) {
+    public StressCentralityPayload(Node originalSource, Node originalDestination, int distance, int minPaths) {
         super(originalSource, distance);
+        this.originalDestination = originalDestination;
         this.minPaths = minPaths;
     }
 
     public int getMinPaths() {
         return minPaths;
+    }
+
+    public Node getOriginalDestination() {
+        return originalDestination;
     }
 }

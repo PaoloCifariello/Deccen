@@ -2,6 +2,7 @@ package p2p.deccen.core.util;
 
 import peersim.core.Node;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
@@ -9,9 +10,27 @@ import java.util.HashMap;
  */
 public class Routing {
 
-    private HashMap<Node, Node> routingTable = new HashMap<>();
+    private HashMap<Node, ArrayList<Node>> routingTable = new HashMap<>();
 
-    public Node getRoute(Node a) {
-        return routingTable.get(a);
+    public ArrayList<Node> getRoute(Node node) {
+        if (routingTable.containsKey(node))
+            return routingTable.get(node);
+
+        return new ArrayList<>();
+    }
+
+    public void addRoute(Node originalSource, Node source) {
+        ArrayList<Node> route;
+
+        if (routingTable.containsKey(originalSource)) {
+            route = routingTable.get(originalSource);
+        } else {
+            route = new ArrayList<>();
+        }
+
+        if (!route.contains(source))
+            route.add(source);
+
+        routingTable.put(originalSource, route);
     }
 }

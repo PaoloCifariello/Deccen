@@ -23,10 +23,11 @@ protocol.cc p2p.deccen.core.protocols.ClosenessCentralityCD
 protocol.cc.linkable link
 protocol.cc.step 1
 
-#protocol.stress p2p.deccen.core.protocols.StressCentralityCD
-#protocol.sc.linkable link
-#protocol.sc.step 1
-#protocol.sc.ccProtocol cc
+protocol.sc p2p.deccen.core.protocols.StressCentralityCD
+protocol.sc.linkable link
+protocol.sc.ccProtocol cc
+protocol.sc.step 1
+
 
 ################### initialization ======================
 

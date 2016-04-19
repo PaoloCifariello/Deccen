@@ -17,7 +17,7 @@ import java.util.HashMap;
 /**
  * Created by paolocifariello.
  */
-public class StressCentralityCD extends DoubleVectorHolder<Node, Message>
+public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage>
         implements CDProtocol {
 
     private static final String CC_PROTOCOL = "ccProtocol";
@@ -25,6 +25,7 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, Message>
 
     private boolean firstCycle = false;
     private HashMap<Node, ArrayList<RequestMessage>> inQueue = new HashMap<>();
+    private HashMap<Node, Integer> minPathsTo = new HashMap<>();
 
     private Routing routing = new Routing();
 
@@ -43,8 +44,25 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, Message>
             this.firstCycle = false;
         }
 
+        /** process request messages for each original source */
         for (Node originalSource : inQueue.keySet()) {
             processMessagesFrom(originalSource, node, pid);
+        }
+
+        /** forward back response messages */
+        for (ResponseMessage rMessage : vec2) {
+            StressCentralityPayload scp = (StressCentralityPayload) rMessage.getPayload();
+            Node originalSource = scp.getOriginalSource();
+            Node originalDestination = scp.getOriginalDestination();
+            /** node is on at least 1 min path from originalSource to originalDestination */
+
+            if (node.equals(originalSource) && !minPathsTo.containsKey(originalDestination)) { // I am originalSource
+                minPathsTo.put(originalDestination, scp.getMinPaths());
+            } else { // I am between originalSource and originalDestination
+                for (Node backForward : routing.getRoute(originalSource)) {
+                    sendPong(node, backForward, scp, pid);
+                }
+            }
         }
 
         vec2.clear();
@@ -58,9 +76,15 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, Message>
     }
 
     private void sendPing(Node source, Node destination, Node originalSource, int distance, int minPaths, int pid) {
-        RequestMessage rMessage = new RequestMessage(source, destination, new StressCentralityPayload(originalSource, distance, minPaths));
+        RequestMessage rMessage = new RequestMessage(source, destination, new StressCentralityPayload(originalSource, null, distance, minPaths));
         StressCentralityCD sscd = (StressCentralityCD) destination.getProtocol(pid);
         sscd.addRequestMessage(originalSource, rMessage);
+    }
+
+    private void sendPong(Node source, Node destination, StressCentralityPayload scp, int pid) {
+        ResponseMessage rMessage = new ResponseMessage(source, destination, scp);
+        StressCentralityCD sscd = (StressCentralityCD) destination.getProtocol(pid);
+        sscd.addReplyMessage(rMessage);
     }
 
     private void addRequestMessage(Node originalSource, RequestMessage rMessage) {
@@ -87,30 +111,28 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, Message>
 
         if (!queue.isEmpty()) {
             int minPathsFromSource = 0;
+            int distanceFromSource = ((StressCentralityPayload) queue.get(0).getPayload()).getDistance();
 
-//            for (RequestMessage rMessage : queue) {
-//                minPathsFromSource += rMessage.getDistance();
-//            }
+            /** 1- phase, request messages collection, process of # min. paths from originalSource, min. distance from originalSource */
+            for (RequestMessage rMessage : queue) {
+                StressCentralityPayload scp = (StressCentralityPayload) rMessage.getPayload();
+                minPathsFromSource += scp.getMinPaths();
+                routing.addRoute(originalSource, rMessage.getSource());
+            }
 
-//            for (RequestMessage rMessage : queue) {
-//                ResponseMessage responseMessage = new ResponseMessage(minPathsFromSource)
-//            }
+            /** 2- phase, response messages */
+            for (RequestMessage rMessage : queue) {
+                sendPong(node, rMessage.getSource(), new StressCentralityPayload(originalSource, node, distanceFromSource, minPathsFromSource), pid);
+            }
 
             queue.clear();
 
+            /** 3- phase, forwarding request messages to all neighbors */
             NeighborsProtocol neighbors = (NeighborsProtocol) node.getProtocol(FastConfig.getLinkable(pid));
-            // forward the message to all neighbors
-//            sendPing(originalSource, node, neighbors.getAll(), minPathsFromSource, pid);
-            // tells to originalSource # of min paths from originalSource to node
-            sendPong(originalSource, node, minPathsFromSource, pid);
+            sendPing(node, neighbors.getAll(), originalSource, distanceFromSource + 1, minPathsFromSource, pid);
         }
     }
 
-    private void sendPong(Node originalSource, Node node, int value, int pid) {
-        //ResponseMessage rMessage = new ResponseMessage(value, node);
-        //StressCentralityCD sccd = (StressCentralityCD) originalSource.getProtocol(pid);
-        //sccd.addReplyMessage(rMessage);
-    }
 
     private void addReplyMessage(ResponseMessage rMessage) {
         vec2.add(rMessage);
@@ -121,6 +143,7 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, Message>
         cced.setFirstValue(new ArrayList<>());
         cced.setSecondValue(new ArrayList<>());
         cced.inQueue = new HashMap<>();
+        cced.minPathsTo = new HashMap<>();
         cced.routing = new Routing();
         cced.firstCycle = true;
         return cced;
