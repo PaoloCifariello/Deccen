@@ -1,6 +1,5 @@
 package p2p.deccen.core.protocols;
 
-import p2p.deccen.core.transport.Message;
 import p2p.deccen.core.transport.RequestMessage;
 import p2p.deccen.core.transport.ResponseMessage;
 import p2p.deccen.core.transport.StressCentralityPayload;
@@ -51,21 +50,35 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
 
         /** forward back response messages */
         for (ResponseMessage rMessage : vec2) {
-            StressCentralityPayload scp = (StressCentralityPayload) rMessage.getPayload();
-            Node originalSource = scp.getOriginalSource();
-            Node originalDestination = scp.getOriginalDestination();
-            /** node is on at least 1 min path from originalSource to originalDestination */
-
-            if (node.equals(originalSource) && !minPathsTo.containsKey(originalDestination)) { // I am originalSource
-                minPathsTo.put(originalDestination, scp.getMinPaths());
-            } else { // I am between originalSource and originalDestination
-                for (Node backForward : routing.getRoute(originalSource)) {
-                    sendPong(node, backForward, scp, pid);
-                }
-            }
+            processResponseMessage(node, rMessage, pid);
         }
 
         vec2.clear();
+    }
+
+    private void processResponseMessage(Node node, ResponseMessage rMessage, int pid) {
+        StressCentralityPayload scp = (StressCentralityPayload) rMessage.getPayload();
+        Node originalSource = scp.getOriginalSource();
+        Node originalDestination = scp.getOriginalDestination();
+        /** node is on at least 1 min path from originalSource to originalDestination */
+
+        if (node.equals(originalSource) && !minPathsTo.containsKey(originalDestination)) { // I am originalSource
+            minPathsTo.put(originalDestination, scp.getMinPaths());
+        } else {
+            ClosenessCentralityCD cccd = (ClosenessCentralityCD) node.getProtocol(cccdPid);
+            /** In this case node is on at least 1 minimum path from originalSource to originalDestination */
+            if (cccd.getDistance(originalDestination) + cccd.getDistance(originalDestination) == scp.getDistance()) {
+                System.out.println("I am " + node.getID() + " and I am on a minimum path from " + originalSource.getID() + " to " + originalDestination.getID());
+            }
+
+            forwardPong(node, originalSource, scp, pid);
+        }
+    }
+
+    private void forwardPong(Node node,Node originalSource, StressCentralityPayload scp, int pid) {
+        for (Node backForward : routing.getRoute(originalSource)) {
+            sendPong(node, backForward, scp, pid);
+        }
     }
 
     private void sendPing(Node source, Node[] destinations, Node originalSource, int distance, int minPaths, int pid) {
@@ -78,7 +91,7 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
     private void sendPing(Node source, Node destination, Node originalSource, int distance, int minPaths, int pid) {
         RequestMessage rMessage = new RequestMessage(source, destination, new StressCentralityPayload(originalSource, null, distance, minPaths));
         StressCentralityCD sscd = (StressCentralityCD) destination.getProtocol(pid);
-        sscd.addRequestMessage(originalSource, rMessage);
+        sscd.addRequestMessage(rMessage);
     }
 
     private void sendPong(Node source, Node destination, StressCentralityPayload scp, int pid) {
@@ -87,8 +100,9 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
         sscd.addReplyMessage(rMessage);
     }
 
-    private void addRequestMessage(Node originalSource, RequestMessage rMessage) {
+    private void addRequestMessage(RequestMessage rMessage) {
         ArrayList<RequestMessage> queue;
+        Node originalSource = ((StressCentralityPayload) rMessage.getPayload()).getOriginalSource();
 
         /** initialization of the queue associated to originalSource */
         if (!inQueue.containsKey(originalSource)) {
@@ -129,7 +143,7 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
 
             /** 3- phase, forwarding request messages to all neighbors */
             NeighborsProtocol neighbors = (NeighborsProtocol) node.getProtocol(FastConfig.getLinkable(pid));
-            sendPing(node, neighbors.getAll(), originalSource, distanceFromSource + 1, minPathsFromSource, pid);
+            sendPing(node, neighbors.getAllExcept(originalSource), originalSource, distanceFromSource + 1, minPathsFromSource, pid);
         }
     }
 

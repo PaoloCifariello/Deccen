@@ -56,7 +56,7 @@ public class ClosenessCentralityCD extends DoubleVectorHolder<Node, Message>
         vec2.clear();
 
         if (distances.size() == Network.size() - 1) {
-            System.out.println("I am " + node.getID() + " and my Closeness Centrality is " + calculateClosenessCentrality());
+            //System.out.println("I am " + node.getID() + " and my Closeness Centrality is " + calculateClosenessCentrality());
         }
     }
 
@@ -113,6 +113,13 @@ public class ClosenessCentralityCD extends DoubleVectorHolder<Node, Message>
 
     private void addMessage(Message rMessage) {
         this.vec2.add(rMessage);
+    }
+
+    public int getDistance(Node node) {
+        if (distances.containsKey(node))
+            return distances.get(node);
+
+        return -1;
     }
 
     public Object clone() {
