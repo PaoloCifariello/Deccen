@@ -16,7 +16,7 @@ simulation.cycles CYCLES
 #Linkable protocol to store neighbors
 protocol.link p2p.deccen.core.protocols.NeighborsProtocol
 #Initial capacity of the neighbors list.
-protocol.link.capacity 2
+protocol.link.capacity 3
 
 protocol.cc p2p.deccen.core.protocols.ClosenessCentralityCD
 protocol.cc.linkable link

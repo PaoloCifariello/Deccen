@@ -3,7 +3,10 @@ package p2p.deccen.core.protocols;
 import p2p.deccen.core.transport.RequestMessage;
 import p2p.deccen.core.transport.ResponseMessage;
 import p2p.deccen.core.transport.StressCentralityPayload;
+import p2p.deccen.core.util.Route;
+import p2p.deccen.core.util.RouteSigmaTable;
 import p2p.deccen.core.util.Routing;
+import p2p.deccen.core.util.Sigma;
 import p2p.deccen.core.values.DoubleVectorHolder;
 import peersim.cdsim.CDProtocol;
 import peersim.config.Configuration;
@@ -24,9 +27,12 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
 
     private boolean firstCycle = false;
     private HashMap<Node, ArrayList<RequestMessage>> inQueue = new HashMap<>();
-    private HashMap<Node, Integer> minPathsTo = new HashMap<>();
+    private RouteSigmaTable rst = new RouteSigmaTable();
 
     private Routing routing = new Routing();
+
+    private int stressCentrality;
+    private double betweennessCentrality;
 
     public StressCentralityCD(String prefix) {
         cccdPid = Configuration.getPid(prefix + "." + CC_PROTOCOL);
@@ -53,6 +59,9 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
             processResponseMessage(node, rMessage, pid);
         }
 
+        /** RouteSigmaTable is completed partially at each cycle */
+        fillRouteSigmaTable(node);
+
         vec2.clear();
     }
 
@@ -62,13 +71,22 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
         Node originalDestination = scp.getOriginalDestination();
         /** node is on at least 1 min path from originalSource to originalDestination */
 
-        if (node.equals(originalSource) && !minPathsTo.containsKey(originalDestination)) { // I am originalSource
-            minPathsTo.put(originalDestination, scp.getMinPaths());
+        if (node.equals(originalSource) && !rst.containsRoute(originalSource, originalDestination)) { // I am originalSource
+            rst.addRoute(originalSource, originalDestination, new Sigma(scp.getMinPaths(), scp.getMinPaths()));
         } else {
             ClosenessCentralityCD cccd = (ClosenessCentralityCD) node.getProtocol(cccdPid);
             /** In this case node is on at least 1 minimum path from originalSource to originalDestination */
             if (cccd.getDistance(originalDestination) + cccd.getDistance(originalDestination) == scp.getDistance()) {
-                System.out.println("I am " + node.getID() + " and I am on a minimum path from " + originalSource.getID() + " to " + originalDestination.getID());
+                // mi segno che sono sul min path da originalSource a originalDestination
+                Sigma s;
+                if (rst.containsRoute(originalSource, originalDestination)) {
+                    s = rst.getSigma(originalSource, originalDestination);
+                } else {
+                    s = new Sigma();
+                    rst.addRoute(originalSource, originalDestination, s);
+                }
+
+                s.s1 = scp.getMinPaths();
             }
 
             forwardPong(node, originalSource, scp, pid);
@@ -156,6 +174,49 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
         }
     }
 
+
+    private void fillRouteSigmaTable(Node node) {
+        for (Route r : rst.getRoutes()) {
+            Sigma s = rst.getSigma(r);
+
+            if (s.s2 == -1) {
+                Sigma s1 = rst.getSigma(node, r.getSource());
+                Sigma s2 = rst.getSigma(node, r.getDestination());
+
+                if (s1 != null && s2 != null)
+                    s.s2 = s1.s1 * s2.s1;
+            }
+        }
+
+        if (rst.getSize() > 0 && rst.isFilled()) {
+            this.stressCentrality = computeStressCentrality();
+            this.betweennessCentrality = computeBetwennessCentrality();
+        }
+    }
+
+    private int computeStressCentrality() {
+        int sc = 0;
+
+        for (Route r : rst.getRoutes()) {
+            Sigma s = rst.getSigma(r);
+            sc += s.s2;
+        }
+
+        return sc;
+    }
+
+    private double computeBetwennessCentrality() {
+        double bc = 0;
+
+        for (Route r : rst.getRoutes()) {
+            Sigma s = rst.getSigma(r);
+            bc += ((double) s.s2 / (double) s.s1);
+        }
+
+        return bc;
+    }
+
+
     /**
      * Min distance over a Queue of messages
      */
@@ -180,7 +241,7 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
         cced.setFirstValue(new ArrayList<>());
         cced.setSecondValue(new ArrayList<>());
         cced.inQueue = new HashMap<>();
-        cced.minPathsTo = new HashMap<>();
+        cced.rst = new RouteSigmaTable();
         cced.routing = new Routing();
         cced.firstCycle = true;
         return cced;
