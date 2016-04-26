@@ -44,3 +44,9 @@ init.initRoot.protocol cc
 init.initRoot.initAll true
 
 ################ control ==============================
+
+# used to print the graph in dot
+#control.obs GraphPrinter
+#control.obs.protocol link
+#control.obs.format dot
+#control.obs.outf graph

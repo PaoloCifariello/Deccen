@@ -125,7 +125,16 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
 
         if (!queue.isEmpty()) {
             int minPathsFromSource = 0;
-            int distanceFromSource = ((StressCentralityPayload) queue.get(0).getPayload()).getDistance();
+            final int distanceFromSource = getDistanceFromSource(queue);
+
+            /** - this phase is needed in to discard request messages with 'wrong' distance
+             *    (it happens when A sends a message to C at cycle k, but C doesn't process the message at k.
+             *    At cycle k+1 B sends a message to C with distance k+1. In this cycle C will process messages from
+             *    A and B with distances k, k+1, only the first message needs to be processed) */
+            queue.removeIf(rMessage -> {
+                StressCentralityPayload scp = (StressCentralityPayload) rMessage.getPayload();
+                return scp.getDistance() != distanceFromSource;
+            });
 
             /** 1- phase, request messages collection, process of # min. paths from originalSource, min. distance from originalSource */
             for (RequestMessage rMessage : queue) {
@@ -145,6 +154,20 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
             NeighborsProtocol neighbors = (NeighborsProtocol) node.getProtocol(FastConfig.getLinkable(pid));
             sendPing(node, neighbors.getAllExcept(originalSource), originalSource, distanceFromSource + 1, minPathsFromSource, pid);
         }
+    }
+
+    /**
+     * Min distance over a Queue of messages
+     */
+    private int getDistanceFromSource(ArrayList<RequestMessage> queue) {
+        int distanceFromSource = ((StressCentralityPayload) queue.get(0).getPayload()).getDistance();
+
+        for (RequestMessage rMessage : queue) {
+            StressCentralityPayload scp = (StressCentralityPayload) rMessage.getPayload();
+            distanceFromSource = Math.min(distanceFromSource, scp.getDistance());
+        }
+
+        return distanceFromSource;
     }
 
 
