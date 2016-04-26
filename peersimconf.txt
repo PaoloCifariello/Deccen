@@ -1,11 +1,10 @@
 ################### global variables ===========================
 
 # network size
-SIZE 4
+SIZE 10
 
 # parameters of periodic execution
-CYCLES 20
-CYCLE SIZE*10000
+CYCLES 50
 
 random.seed 1234567890
 network.size SIZE
@@ -46,7 +45,8 @@ init.initRoot.initAll true
 ################ control ==============================
 
 # used to print the graph in dot
-#control.obs GraphPrinter
-#control.obs.protocol link
-#control.obs.format dot
-#control.obs.outf graph
+control.obs GraphPrinter
+control.obs.protocol link
+control.obs.format dot
+control.obs.outf graph
+control.obs.until 1

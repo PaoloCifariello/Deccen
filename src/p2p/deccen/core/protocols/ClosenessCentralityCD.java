@@ -25,12 +25,13 @@ public class ClosenessCentralityCD extends DoubleVectorHolder<Node, Message>
 
     public HashMap<Node, Integer> distances = new HashMap<>();
     public boolean root = false;
+    private boolean stable = false;
 
     public ClosenessCentralityCD(String prefix) {
     }
 
     public boolean isStable() {
-        return this.distances.size() == Network.size() - 1;
+        return stable;
     }
 
     public void setRoot() {
@@ -49,13 +50,21 @@ public class ClosenessCentralityCD extends DoubleVectorHolder<Node, Message>
             root = false;
         }
 
+        int distancesSize = distances.size();
+
         for (Message rMessage : vec2) {
             processMessage(node, rMessage, pid);
         }
 
         vec2.clear();
 
-        if (distances.size() == Network.size() - 1) {
+        /**
+         * when a node A does not add a new node to the list of reachable ones at cycle k,
+         * it will not add any other node in further cycles, so if in a cycle I don't add any node to distances (except
+         * for the very first cycle) the protocol on this node is considered as 'stable'
+         */
+        if (distancesSize != 0 && distances.size() == distancesSize) {
+            stable = true;
             //System.out.println("I am " + node.getID() + " and my Closeness Centrality is " + calculateClosenessCentrality());
         }
     }
