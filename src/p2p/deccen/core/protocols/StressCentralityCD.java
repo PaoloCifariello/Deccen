@@ -60,7 +60,7 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
         }
 
         /** RouteSigmaTable is completed partially at each cycle */
-        fillRouteSigmaTable(node);
+        fillRouteSigmaTable(node, pid);
 
         vec2.clear();
     }
@@ -74,9 +74,10 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
         if (node.equals(originalSource) && !rst.containsRoute(originalSource, originalDestination)) { // I am originalSource
             rst.addRoute(originalSource, originalDestination, new Sigma(scp.getMinPaths(), scp.getMinPaths()));
         } else {
+            ClosenessCentralityCD cccdSource = (ClosenessCentralityCD) originalSource.getProtocol(cccdPid);
             ClosenessCentralityCD cccd = (ClosenessCentralityCD) node.getProtocol(cccdPid);
             /** In this case node is on at least 1 minimum path from originalSource to originalDestination */
-            if (cccd.getDistance(originalDestination) + cccd.getDistance(originalDestination) == scp.getDistance()) {
+            if (cccdSource.getDistance(node) + cccd.getDistance(originalDestination) == scp.getDistance()) {
                 // mi segno che sono sul min path da originalSource a originalDestination
                 Sigma s;
                 if (rst.containsRoute(originalSource, originalDestination)) {
@@ -175,12 +176,15 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
     }
 
 
-    private void fillRouteSigmaTable(Node node) {
+    private void fillRouteSigmaTable(Node node, int pid) {
         for (Route r : rst.getRoutes()) {
             Sigma s = rst.getSigma(r);
 
             if (s.s2 == -1) {
-                Sigma s1 = rst.getSigma(node, r.getSource());
+                Node source = r.getSource();
+                StressCentralityCD sccd = (StressCentralityCD) source.getProtocol(pid);
+
+                Sigma s1 = sccd.getSigma(source, node);
                 Sigma s2 = rst.getSigma(node, r.getDestination());
 
                 if (s1 != null && s2 != null)
@@ -192,6 +196,10 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
             this.stressCentrality = computeStressCentrality();
             this.betweennessCentrality = computeBetwennessCentrality();
         }
+    }
+
+    private Sigma getSigma(Node source, Node destination) {
+        return rst.getSigma(source, destination);
     }
 
     private int computeStressCentrality() {

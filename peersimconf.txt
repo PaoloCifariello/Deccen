@@ -26,6 +26,8 @@ protocol.sc p2p.deccen.core.protocols.StressCentralityCD
 protocol.sc.linkable link
 protocol.sc.ccProtocol cc
 protocol.sc.step 1
+# per permettere al Closeness Centrality di stabilizzare tutte le distanze
+protocol.sc.from SIZE + 1
 
 
 ################### initialization ======================
