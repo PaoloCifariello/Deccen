@@ -18,6 +18,7 @@ public class Route {
     public boolean equals(Object o) {
         if (o == null || !(o instanceof Route)) return false;
         Route other = (Route) o;
+
         return (source == other.source && destination == other.destination) ||
                         (source == other.destination && destination == other.source);
     }

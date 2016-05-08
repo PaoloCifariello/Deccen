@@ -1,10 +1,10 @@
 ################### global variables ===========================
 
 # network size
-SIZE 10
+SIZE 63
 
 # parameters of periodic execution
-CYCLES 50
+CYCLES SIZE * SIZE
 
 random.seed 1234567890
 network.size SIZE
@@ -15,8 +15,6 @@ simulation.cycles CYCLES
 
 #Linkable protocol to store neighbors
 protocol.link p2p.deccen.core.protocols.NeighborsProtocol
-#Initial capacity of the neighbors list.
-protocol.link.capacity 3
 
 protocol.cc p2p.deccen.core.protocols.ClosenessCentralityCD
 protocol.cc.linkable link
@@ -32,9 +30,12 @@ protocol.sc.from SIZE + 1
 
 ################### initialization ======================
 
-init.rndlink WireKOut
-init.rndlink.k 4
-init.rndlink.protocol link
+init.wire WireFromFile
+init.wire.file test/dolphin.csv
+init.wire.protocol link
+init.wire.undir true
+#init.rndlink.k 4
+
 
 init.sch CDScheduler
 init.sch.protocol cc

@@ -43,7 +43,7 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
         ClosenessCentralityCD cccd = (ClosenessCentralityCD) node.getProtocol(cccdPid);
 
         // distances are stable from Closeness Centrality protocol, so we can start with stress centrality
-        if (cccd.isStable() && firstCycle) {
+        if (firstCycle) {
             NeighborsProtocol neighbors = (NeighborsProtocol) node.getProtocol(FastConfig.getLinkable(pid));
             sendPing(node, neighbors.getAll(), node, 1, 1, pid);
             this.firstCycle = false;
@@ -62,6 +62,8 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
         /** RouteSigmaTable is completed partially at each cycle */
         fillRouteSigmaTable(node, pid);
 
+        System.out.println("My Stress Centrality is : " + stressCentrality);
+        System.out.println("My Betweness Centrality is : " + betweennessCentrality);
         vec2.clear();
     }
 

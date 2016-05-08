@@ -17,27 +17,13 @@ public class NeighborsProtocol implements Protocol, Linkable {
      * Neighbors
      */
     protected ArrayList<Node> neighbors;
-    /**
-     * Parameter for initial capacity of the vector
-     */
-    public final static String PAR_INIT_CAPACITY = "capacity";
-
-    /**
-     * Default initial capacity of the vector
-     */
-    private final static int defaultInitialCapacity = 10;
-    /**
-     * size
-     */
-    private static int size;
 
     /**
      * Constructor
      */
     public NeighborsProtocol(String prefix) {
         /** get the parameter value from configuration file . */
-        size = Configuration.getInt(prefix + "." + PAR_INIT_CAPACITY, defaultInitialCapacity);
-        neighbors = new ArrayList<>(size);
+        neighbors = new ArrayList<>();
     }
 
     /**
@@ -52,7 +38,7 @@ public class NeighborsProtocol implements Protocol, Linkable {
      * Add a neighbor to the current set of neighbors.
      */
     public boolean addNeighbor(Node n) {
-        if (neighbors.contains(n) || neighbors.size() >= size)
+        if (this.contains(n))
             return false;
 
         neighbors.add(n);
@@ -99,13 +85,13 @@ public class NeighborsProtocol implements Protocol, Linkable {
     }
 
     public Node[] getAll() {
-        return this.neighbors.toArray(new Node[0]);
+        return this.neighbors.toArray(new Node[neighbors.size()]);
     }
 
     public Node[] getAllExcept(Node except) {
         ArrayList<Node> newNeighbors = new ArrayList<>(neighbors);
         newNeighbors.remove(except);
-        return newNeighbors.toArray(new Node[0]);
+        return newNeighbors.toArray(new Node[newNeighbors.size()]);
     }
 
     public Node[] getAllExcept(Node[] except) {
@@ -114,6 +100,6 @@ public class NeighborsProtocol implements Protocol, Linkable {
             newNeighbors.remove(n);
         }
 
-        return newNeighbors.toArray(new Node[0]);
+        return newNeighbors.toArray(new Node[newNeighbors.size()]);
     }
 }
