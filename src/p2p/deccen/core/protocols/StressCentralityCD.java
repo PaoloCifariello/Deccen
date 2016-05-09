@@ -31,6 +31,7 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
 
     private Routing routing = new Routing();
 
+    public int sentMessages = 0;
     private int stressCentrality;
     private double betweennessCentrality;
 
@@ -60,10 +61,10 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
         }
 
         /** RouteSigmaTable is completed partially at each cycle */
-        fillRouteSigmaTable(node, pid);
+        fillRouteSigmaTable(node);
 
-        System.out.println("My Stress Centrality is : " + stressCentrality);
-        System.out.println("My Betweness Centrality is : " + betweennessCentrality);
+//        System.out.println("My Stress Centrality is : " + stressCentrality);
+//        System.out.println("My Betweness Centrality is : " + betweennessCentrality);
         vec2.clear();
     }
 
@@ -76,10 +77,9 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
         if (node.equals(originalSource) && !rst.containsRoute(originalSource, originalDestination)) { // I am originalSource
             rst.addRoute(originalSource, originalDestination, new Sigma(scp.getMinPaths(), scp.getMinPaths()));
         } else {
-            ClosenessCentralityCD cccdSource = (ClosenessCentralityCD) originalSource.getProtocol(cccdPid);
             ClosenessCentralityCD cccd = (ClosenessCentralityCD) node.getProtocol(cccdPid);
             /** In this case node is on at least 1 minimum path from originalSource to originalDestination */
-            if (cccdSource.getDistance(node) + cccd.getDistance(originalDestination) == scp.getDistance()) {
+            if (cccd.getDistance(originalSource) + cccd.getDistance(originalDestination) == scp.getDistance()) {
                 // mi segno che sono sul min path da originalSource a originalDestination
                 Sigma s;
                 if (rst.containsRoute(originalSource, originalDestination)) {
@@ -113,12 +113,14 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
         RequestMessage rMessage = new RequestMessage(source, destination, new StressCentralityPayload(originalSource, null, distance, minPaths));
         StressCentralityCD sscd = (StressCentralityCD) destination.getProtocol(pid);
         sscd.addRequestMessage(rMessage);
+        sentMessages++;
     }
 
     private void sendPong(Node source, Node destination, StressCentralityPayload scp, int pid) {
         ResponseMessage rMessage = new ResponseMessage(source, destination, scp);
         StressCentralityCD sscd = (StressCentralityCD) destination.getProtocol(pid);
         sscd.addReplyMessage(rMessage);
+        sentMessages++;
     }
 
     private void addRequestMessage(RequestMessage rMessage) {
@@ -178,16 +180,16 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
     }
 
 
-    private void fillRouteSigmaTable(Node node, int pid) {
+    private void fillRouteSigmaTable(Node node) {
         for (Route r : rst.getRoutes()) {
             Sigma s = rst.getSigma(r);
 
             if (s.s2 == -1) {
                 Node source = r.getSource();
-                StressCentralityCD sccd = (StressCentralityCD) source.getProtocol(pid);
+                Node destination = r.getDestination();
 
-                Sigma s1 = sccd.getSigma(source, node);
-                Sigma s2 = rst.getSigma(node, r.getDestination());
+                Sigma s1 = getSigma(source, node);
+                Sigma s2 = getSigma(node, destination);
 
                 if (s1 != null && s2 != null)
                     s.s2 = s1.s1 * s2.s1;

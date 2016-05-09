@@ -25,6 +25,7 @@ public class ClosenessCentralityCD extends DoubleVectorHolder<Node, Message>
 
     public HashMap<Node, Integer> distances = new HashMap<>();
     public boolean root = false;
+    public int sentMessages = 0;
 
     public ClosenessCentralityCD(String prefix) {
     }
@@ -68,8 +69,7 @@ public class ClosenessCentralityCD extends DoubleVectorHolder<Node, Message>
 
     private void sendPing(Node source, Node destination, Node originalSource, int distance, int pid) {
         RequestMessage rMessage = new RequestMessage(source, destination, new ClosenessCentralityPayload(originalSource, distance));
-        ClosenessCentralityCD cced = (ClosenessCentralityCD) destination.getProtocol(pid);
-        cced.addMessage(rMessage);
+        sendMessage(destination, rMessage, pid);
     }
 
     private void processMessage(Node node, Message message, int pid) {
@@ -94,8 +94,13 @@ public class ClosenessCentralityCD extends DoubleVectorHolder<Node, Message>
 
     private void sendPong(Node originalSource, Node node, int distance, int pid) {
         ResponseMessage rMessage = new ResponseMessage(node, originalSource, new ClosenessCentralityPayload(node, distance));
-        ClosenessCentralityCD cced = (ClosenessCentralityCD) originalSource.getProtocol(pid);
+        sendMessage(originalSource, rMessage, pid);
+    }
+
+    private void sendMessage(Node destination, Message rMessage, int pid) {
+        ClosenessCentralityCD cced = (ClosenessCentralityCD) destination.getProtocol(pid);
         cced.addMessage(rMessage);
+        sentMessages++;
     }
 
     private int calculateClosenessCentrality() {

@@ -34,8 +34,6 @@ init.wire WireFromFile
 init.wire.file test/dolphin.csv
 init.wire.protocol link
 init.wire.undir true
-#init.rndlink.k 4
-
 
 init.sch CDScheduler
 init.sch.protocol cc
@@ -45,11 +43,16 @@ init.initRoot InitRootNode
 init.initRoot.protocol cc
 init.initRoot.initAll true
 
-################ control ==============================
+################ observer ==============================
 
 # used to print the graph in dot
-control.obs GraphPrinter
-control.obs.protocol link
-control.obs.format dot
-control.obs.outf graph
-control.obs.until 1
+control.graphprinter GraphPrinter
+control.graphprinter.protocol link
+control.graphprinter.format dot
+control.graphprinter.outf graph
+control.graphprinter.until 1
+
+control.networktrafficobserver NetworkTrafficObserver
+control.networktrafficobserver.ccProtocol cc
+control.networktrafficobserver.scProtocol sc
+control.networktrafficobserver.from CYCLES - 1
