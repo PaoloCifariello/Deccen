@@ -4,7 +4,7 @@
 SIZE 63
 
 # parameters of periodic execution
-CYCLES SIZE * SIZE
+CYCLES SIZE + SIZE + SIZE
 
 random.seed 1234567890
 network.size SIZE
