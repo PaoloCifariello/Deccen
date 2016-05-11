@@ -1,9 +1,9 @@
 package p2p.deccen.core.protocols;
 
+import p2p.deccen.core.transport.Message;
 import p2p.deccen.core.transport.RequestMessage;
 import p2p.deccen.core.transport.ResponseMessage;
 import p2p.deccen.core.transport.StressCentralityPayload;
-import p2p.deccen.core.util.Route;
 import p2p.deccen.core.util.RouteSigmaTable;
 import p2p.deccen.core.util.Routing;
 import p2p.deccen.core.util.Sigma;
@@ -18,20 +18,19 @@ import java.util.HashMap;
 /**
  * Created by paolocifariello.
  */
-public class StressCentralityCD implements CDProtocol {
+public class StressCentralityCD extends NetworkedProtocol
+        implements CDProtocol {
 
     private static final String CC_PROTOCOL = "ccProtocol";
     private static int cccdPid;
 
     private boolean firstCycle = false;
+    /** list of incoming REQUEST messages, hashed on "original source" */
     private HashMap<Node, ArrayList<RequestMessage>> inQueue = new HashMap<>();
-    private ArrayList<ResponseMessage> responseMessages = new ArrayList<>();
 
     private RouteSigmaTable rst = new RouteSigmaTable();
 
     private Routing routing = new Routing();
-
-    public int sentMessages = 0;
 
     public int stressCentrality;
     public double betweennessCentrality;
@@ -42,13 +41,26 @@ public class StressCentralityCD implements CDProtocol {
 
     @Override
     public void nextCycle(Node node, int pid) {
-        ClosenessCentralityCD cccd = (ClosenessCentralityCD) node.getProtocol(cccdPid);
-
-        // distances are stable from Closeness Centrality protocol, so we can start with stress centrality
         if (firstCycle) {
             NeighborsProtocol neighbors = (NeighborsProtocol) node.getProtocol(FastConfig.getLinkable(pid));
             sendPing(node, neighbors.getAll(), node, 1, 1, pid);
             this.firstCycle = false;
+        }
+
+        processIncomingMessages(node, pid);
+
+        /** RouteSigmaTable is completed partially at each cycle */
+        fillRouteSigmaTable(node);
+    }
+
+    private void processIncomingMessages(Node node, int pid) {
+        for (Message message : incomingMessages) {
+            if (message instanceof RequestMessage) {
+                processRequestMessage((RequestMessage) message);
+            } else {
+                /** forward back response messages */
+                processResponseMessage(node, (ResponseMessage) message, pid);
+            }
         }
 
         /** process request messages for each original source */
@@ -56,17 +68,27 @@ public class StressCentralityCD implements CDProtocol {
             processMessagesFrom(originalSource, node, pid);
         }
 
-        /** forward back response messages */
-        for (ResponseMessage rMessage : responseMessages) {
-            processResponseMessage(node, rMessage, pid);
+        incomingMessages.clear();
+    }
+
+    private void processRequestMessage(RequestMessage message) {
+        Node originalSource = ((StressCentralityPayload) message.getPayload()).getOriginalSource();
+        ArrayList<RequestMessage> queue;
+
+        /** initialization of the queue associated to originalSource */
+        if (!inQueue.containsKey(originalSource)) {
+            queue = new ArrayList<>();
+        } else { // the queue was already initialized
+            queue = inQueue.get(originalSource);
+
+            /** if the queue was already initialized, but it is empty, it was already used to keep information
+             about min paths from originalSource (that was of minimum distance) */
+            if (queue.isEmpty())
+                return;
         }
 
-        /** RouteSigmaTable is completed partially at each cycle */
-        fillRouteSigmaTable(node);
-
-//        System.out.println("My Stress Centrality is : " + stressCentrality);
-//        System.out.println("My Betweness Centrality is : " + betweennessCentrality);
-        responseMessages.clear();
+        queue.add(message);
+        inQueue.put(originalSource, queue);
     }
 
     private void processResponseMessage(Node node, ResponseMessage rMessage, int pid) {
@@ -99,49 +121,25 @@ public class StressCentralityCD implements CDProtocol {
 
     private void forwardPong(Node node,Node originalSource, StressCentralityPayload scp, int pid) {
         for (Node backForward : routing.getRoute(originalSource)) {
-            sendPong(node, backForward, scp, pid);
+            sendPong(node, backForward, scp);
         }
     }
 
     private void sendPing(Node source, Node[] destinations, Node originalSource, int distance, int minPaths, int pid) {
         for (Node destination : destinations) {
             if (destination.isUp())
-                sendPing(source, destination, originalSource, distance, minPaths, pid);
+                sendPing(source, destination, originalSource, distance, minPaths);
         }
     }
 
-    private void sendPing(Node source, Node destination, Node originalSource, int distance, int minPaths, int pid) {
+    private void sendPing(Node source, Node destination, Node originalSource, int distance, int minPaths) {
         RequestMessage rMessage = new RequestMessage(source, destination, new StressCentralityPayload(originalSource, null, distance, minPaths));
-        StressCentralityCD sscd = (StressCentralityCD) destination.getProtocol(pid);
-        sscd.addRequestMessage(rMessage);
-        sentMessages++;
+        sendMessage(rMessage);
     }
 
-    private void sendPong(Node source, Node destination, StressCentralityPayload scp, int pid) {
+    private void sendPong(Node source, Node destination, StressCentralityPayload scp) {
         ResponseMessage rMessage = new ResponseMessage(source, destination, scp);
-        StressCentralityCD sscd = (StressCentralityCD) destination.getProtocol(pid);
-        sscd.addReplyMessage(rMessage);
-        sentMessages++;
-    }
-
-    private void addRequestMessage(RequestMessage rMessage) {
-        ArrayList<RequestMessage> queue;
-        Node originalSource = ((StressCentralityPayload) rMessage.getPayload()).getOriginalSource();
-
-        /** initialization of the queue associated to originalSource */
-        if (!inQueue.containsKey(originalSource)) {
-            queue = new ArrayList<>();
-        } else { // the queue was already initialized
-            queue = inQueue.get(originalSource);
-
-            /** if the queue was already initialized, but it is empty, it was already used to keep information
-             about min paths from originalSource (that was of minimum distance) */
-            if (queue.isEmpty())
-                return;
-        }
-
-        queue.add(rMessage);
-        inQueue.put(originalSource, queue);
+        sendMessage(rMessage);
     }
 
     private void processMessagesFrom(Node originalSource, Node node, int pid) {
@@ -169,7 +167,8 @@ public class StressCentralityCD implements CDProtocol {
 
             /** 2- phase, response messages */
             for (RequestMessage rMessage : queue) {
-                sendPong(node, rMessage.getSource(), new StressCentralityPayload(originalSource, node, distanceFromSource, minPathsFromSource), pid);
+                StressCentralityPayload scp = new StressCentralityPayload(originalSource, node, distanceFromSource, minPathsFromSource);
+                sendPong(node, rMessage.getSource(), scp);
             }
 
             queue.clear();
@@ -182,57 +181,11 @@ public class StressCentralityCD implements CDProtocol {
 
 
     private void fillRouteSigmaTable(Node node) {
-        for (Route r : rst.getRoutes()) {
-            Sigma s = rst.getSigma(r);
-
-            if (s.s2 == -1) {
-                Node source = r.getSource();
-                Node destination = r.getDestination();
-
-                Sigma s1 = getSigma(source, node);
-                Sigma s2 = getSigma(node, destination);
-
-                if (s1 != null && s2 != null)
-                    s.s2 = s1.s1 * s2.s1;
-            }
-        }
-
-        if (rst.getSize() > 0 && rst.isFilled()) {
-            this.stressCentrality = computeStressCentrality(node);
-            this.betweennessCentrality = computeBetwennessCentrality(node);
+        if (rst.fill(node)) {
+            this.stressCentrality = rst.computeStressCentrality(node);
+            this.betweennessCentrality = rst.computeBetwennessCentrality(node);
         }
     }
-
-    private Sigma getSigma(Node source, Node destination) {
-        return rst.getSigma(source, destination);
-    }
-
-    private int computeStressCentrality(Node me) {
-        int sc = 0;
-
-        for (Route r : rst.getRoutes()) {
-            if (r.getSource() != me && r.getDestination() != me) {
-                Sigma s = rst.getSigma(r);
-                sc += s.s2;
-            }
-        }
-
-        return sc * 2;
-    }
-
-    private double computeBetwennessCentrality(Node me) {
-        double bc = 0;
-
-        for (Route r : rst.getRoutes()) {
-            if (r.getSource() != me && r.getDestination() != me) {
-                Sigma s = rst.getSigma(r);
-                bc += ((double) s.s2 / (double) s.s1);
-            }
-        }
-
-        return bc * 2;
-    }
-
 
     /**
      * Min distance over a Queue of messages
@@ -248,19 +201,9 @@ public class StressCentralityCD implements CDProtocol {
         return distanceFromSource;
     }
 
-
-    private void addReplyMessage(ResponseMessage rMessage) {
-        responseMessages.add(rMessage);
-    }
-
     public Object clone() {
-        StressCentralityCD sccd = null;
-        try {
-            sccd = (StressCentralityCD) super.clone();
-        } catch (CloneNotSupportedException e) { }
-
+        StressCentralityCD sccd = (StressCentralityCD) super.clone();
         sccd.inQueue = new HashMap<>();
-        sccd.responseMessages = new ArrayList<>();
         sccd.rst = new RouteSigmaTable();
         sccd.routing = new Routing();
 

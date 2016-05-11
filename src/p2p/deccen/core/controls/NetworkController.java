@@ -1,6 +1,7 @@
 package p2p.deccen.core.controls;
 
 import p2p.deccen.core.protocols.ClosenessCentralityCD;
+import p2p.deccen.core.protocols.NetworkedProtocol;
 import p2p.deccen.core.transport.Message;
 import peersim.config.Configuration;
 import peersim.core.Control;
@@ -28,25 +29,27 @@ public class NetworkController implements Control {
 
     @Override
     public boolean execute() {
-
-        processCCMessages();
+        processMessages(cccdPid);
+        processMessages(sccdPid);
         return false;
     }
 
-    private void processCCMessages() {
+    private void processMessages(int protocolPid) {
         for (int i = 0; i < Network.size(); i++) {
             Node n = Network.get(i);
-            ClosenessCentralityCD cccd = (ClosenessCentralityCD) n.getProtocol(cccdPid);
-            processCCMessages(n);
+            processMessages(n, protocolPid);
         }
     }
 
-    private void processCCMessages(Node source) {
-        ClosenessCentralityCD sourceCccd = (ClosenessCentralityCD) source.getProtocol(cccdPid);
-        for (Message m : sourceCccd.outgoingMessages) {
+    private void processMessages(Node source, int protocolPid) {
+        NetworkedProtocol sourceProtocol = (NetworkedProtocol) source.getProtocol(protocolPid);
+
+        for (Message m : sourceProtocol.outgoingMessages) {
             Node destination = m.getDestination();
-            ClosenessCentralityCD destinationCccd = (ClosenessCentralityCD) destination.getProtocol(cccdPid);
-            destinationCccd.incomingMessages.add(m);
+            NetworkedProtocol destinationProtocol = (NetworkedProtocol) destination.getProtocol(protocolPid);
+            destinationProtocol.incomingMessages.add(m);
         }
+
+        sourceProtocol.outgoingMessages.clear();
     }
 }

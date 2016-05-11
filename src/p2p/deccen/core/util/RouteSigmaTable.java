@@ -45,4 +45,49 @@ public class RouteSigmaTable {
     public int getSize() {
         return routes.size();
     }
+
+    public boolean fill(Node node) {
+        for (Route r : getRoutes()) {
+            Sigma s = getSigma(r);
+
+            if (s.s2 == -1) {
+                Node source = r.getSource();
+                Node destination = r.getDestination();
+
+                Sigma s1 = getSigma(source, node);
+                Sigma s2 = getSigma(node, destination);
+
+                if (s1 != null && s2 != null)
+                    s.s2 = s1.s1 * s2.s1;
+            }
+        }
+
+        return getSize() > 0 && isFilled();
+    }
+
+    public double computeBetwennessCentrality(Node me) {
+        double bc = 0;
+
+        for (Route r : getRoutes()) {
+            if (r.getSource() != me && r.getDestination() != me) {
+                Sigma s = getSigma(r);
+                bc += ((double) s.s2 / (double) s.s1);
+            }
+        }
+
+        return bc * 2;
+    }
+
+    public int computeStressCentrality(Node me) {
+        int sc = 0;
+
+        for (Route r : getRoutes()) {
+            if (r.getSource() != me && r.getDestination() != me) {
+                Sigma s = getSigma(r);
+                sc += s.s2;
+            }
+        }
+
+        return sc * 2;
+    }
 }

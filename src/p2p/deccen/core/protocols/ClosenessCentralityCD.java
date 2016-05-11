@@ -18,7 +18,8 @@ import java.util.HashMap;
  * - list of sources from which i already received a PING
  * - list of messages, used to simulate a cycle-based protocol, with message exchanging
  */
-public class ClosenessCentralityCD implements CDProtocol {
+public class ClosenessCentralityCD extends NetworkedProtocol
+        implements CDProtocol {
 
     public HashMap<Node, Integer> distances = new HashMap<>();
     public boolean root = false;
@@ -26,10 +27,6 @@ public class ClosenessCentralityCD implements CDProtocol {
 
     /** this list contains sources already discovered by this node (already got a ping message from those) */
     private ArrayList<Node> discoveredSources = new ArrayList<>();
-    /** list of incoming messages (Request / Response) */
-    public ArrayList<Message> incomingMessages = new ArrayList<>();
-    /** list of outgoing messages*/
-    public ArrayList<Message> outgoingMessages = new ArrayList<>();
 
     public ClosenessCentralityCD(String prefix) {
     }
@@ -55,12 +52,6 @@ public class ClosenessCentralityCD implements CDProtocol {
         }
 
         incomingMessages.clear();
-
-        /**
-         * when a node A does not add a new node to the list of reachable ones at cycle k,
-         * it will not add any other node in further cycles, so if in a cycle I don't add any node to distances (except
-         * for the very first cycle) the protocol on this node is considered as 'stable'
-         */
     }
 
     private void sendPing(Node source, Node[] destinations, Node originalSource, int distance, int pid) {
@@ -72,7 +63,7 @@ public class ClosenessCentralityCD implements CDProtocol {
 
     private void sendPing(Node source, Node destination, Node originalSource, int distance, int pid) {
         RequestMessage rMessage = new RequestMessage(source, destination, new ClosenessCentralityPayload(originalSource, distance));
-        sendMessage(destination, rMessage, pid);
+        sendMessage(rMessage);
     }
 
     private void processMessage(Node node, Message message, int pid) {
@@ -101,12 +92,7 @@ public class ClosenessCentralityCD implements CDProtocol {
 
     private void sendPong(Node originalSource, Node node, int distance, int pid) {
         ResponseMessage rMessage = new ResponseMessage(node, originalSource, new ClosenessCentralityPayload(node, distance));
-        sendMessage(originalSource, rMessage, pid);
-    }
-
-    private void sendMessage(Node destination, Message rMessage, int pid) {
-        this.outgoingMessages.add(rMessage);
-        sentMessages++;
+        sendMessage(rMessage);
     }
 
     private int calculateClosenessCentrality() {
@@ -133,15 +119,10 @@ public class ClosenessCentralityCD implements CDProtocol {
     }
 
     public Object clone() {
-        ClosenessCentralityCD cccd = null;
-        try {
-            cccd = (ClosenessCentralityCD) super.clone();
-        } catch (CloneNotSupportedException e) { }
+        ClosenessCentralityCD cccd = (ClosenessCentralityCD) super.clone();
 
         cccd.distances = new HashMap<>();
         cccd.discoveredSources = new ArrayList<>();
-        cccd.incomingMessages = new ArrayList<>();
-        cccd.outgoingMessages = new ArrayList<>();
 
         return cccd;
     }
