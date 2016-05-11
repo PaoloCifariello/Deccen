@@ -24,7 +24,7 @@ public class StressCentralityCD extends NetworkedProtocol
     private static final String CC_PROTOCOL = "ccProtocol";
     private static int cccdPid;
 
-    private boolean firstCycle = false;
+    private boolean firstCycle = true;
     /** list of incoming REQUEST messages, hashed on "original source" */
     private HashMap<Node, ArrayList<RequestMessage>> inQueue = new HashMap<>();
 
@@ -206,6 +206,8 @@ public class StressCentralityCD extends NetworkedProtocol
         sccd.inQueue = new HashMap<>();
         sccd.rst = new RouteSigmaTable();
         sccd.routing = new Routing();
+
+        sccd.firstCycle = true;
 
         return sccd;
     }
