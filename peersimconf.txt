@@ -1,10 +1,10 @@
 ################### global variables ===========================
 
 # network size
-SIZE 63
+SIZE 5
 
 # parameters of periodic execution
-CYCLES SIZE + SIZE + SIZE
+CYCLES SIZE + SIZE + SIZE + SIZE
 
 random.seed 1234567890
 network.size SIZE
@@ -31,7 +31,7 @@ protocol.sc.from SIZE + 1
 ################### initialization ======================
 
 init.wire WireFromFile
-init.wire.file test/dolphin.csv
+init.wire.file test/testgraph2.csv
 init.wire.protocol link
 init.wire.undir true
 
@@ -49,10 +49,16 @@ init.initRoot.initAll true
 control.graphprinter GraphPrinter
 control.graphprinter.protocol link
 control.graphprinter.format dot
-control.graphprinter.outf graph
+control.graphprinter.outf dot
 control.graphprinter.until 1
 
 control.networktrafficobserver NetworkTrafficObserver
 control.networktrafficobserver.ccProtocol cc
 control.networktrafficobserver.scProtocol sc
 control.networktrafficobserver.from CYCLES - 1
+
+# used to check correctness
+control.correctnesscheck CorrectnessCheck
+control.correctnesscheck.scProtocol sc
+control.correctnesscheck.file test/testgraph2.dot
+control.correctnesscheck.from CYCLES - 1

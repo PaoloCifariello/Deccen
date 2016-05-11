@@ -7,7 +7,6 @@ import p2p.deccen.core.util.Route;
 import p2p.deccen.core.util.RouteSigmaTable;
 import p2p.deccen.core.util.Routing;
 import p2p.deccen.core.util.Sigma;
-import p2p.deccen.core.values.DoubleVectorHolder;
 import peersim.cdsim.CDProtocol;
 import peersim.config.Configuration;
 import peersim.config.FastConfig;
@@ -19,21 +18,23 @@ import java.util.HashMap;
 /**
  * Created by paolocifariello.
  */
-public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage>
-        implements CDProtocol {
+public class StressCentralityCD implements CDProtocol {
 
     private static final String CC_PROTOCOL = "ccProtocol";
     private static int cccdPid;
 
     private boolean firstCycle = false;
     private HashMap<Node, ArrayList<RequestMessage>> inQueue = new HashMap<>();
+    private ArrayList<ResponseMessage> responseMessages = new ArrayList<>();
+
     private RouteSigmaTable rst = new RouteSigmaTable();
 
     private Routing routing = new Routing();
 
     public int sentMessages = 0;
-    private int stressCentrality;
-    private double betweennessCentrality;
+
+    public int stressCentrality;
+    public double betweennessCentrality;
 
     public StressCentralityCD(String prefix) {
         cccdPid = Configuration.getPid(prefix + "." + CC_PROTOCOL);
@@ -56,7 +57,7 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
         }
 
         /** forward back response messages */
-        for (ResponseMessage rMessage : vec2) {
+        for (ResponseMessage rMessage : responseMessages) {
             processResponseMessage(node, rMessage, pid);
         }
 
@@ -65,7 +66,7 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
 
 //        System.out.println("My Stress Centrality is : " + stressCentrality);
 //        System.out.println("My Betweness Centrality is : " + betweennessCentrality);
-        vec2.clear();
+        responseMessages.clear();
     }
 
     private void processResponseMessage(Node node, ResponseMessage rMessage, int pid) {
@@ -197,8 +198,8 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
         }
 
         if (rst.getSize() > 0 && rst.isFilled()) {
-            this.stressCentrality = computeStressCentrality();
-            this.betweennessCentrality = computeBetwennessCentrality();
+            this.stressCentrality = computeStressCentrality(node);
+            this.betweennessCentrality = computeBetwennessCentrality(node);
         }
     }
 
@@ -206,26 +207,30 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
         return rst.getSigma(source, destination);
     }
 
-    private int computeStressCentrality() {
+    private int computeStressCentrality(Node me) {
         int sc = 0;
 
         for (Route r : rst.getRoutes()) {
-            Sigma s = rst.getSigma(r);
-            sc += s.s2;
+            if (r.getSource() != me && r.getDestination() != me) {
+                Sigma s = rst.getSigma(r);
+                sc += s.s2;
+            }
         }
 
-        return sc;
+        return sc * 2;
     }
 
-    private double computeBetwennessCentrality() {
+    private double computeBetwennessCentrality(Node me) {
         double bc = 0;
 
         for (Route r : rst.getRoutes()) {
-            Sigma s = rst.getSigma(r);
-            bc += ((double) s.s2 / (double) s.s1);
+            if (r.getSource() != me && r.getDestination() != me) {
+                Sigma s = rst.getSigma(r);
+                bc += ((double) s.s2 / (double) s.s1);
+            }
         }
 
-        return bc;
+        return bc * 2;
     }
 
 
@@ -245,17 +250,20 @@ public class StressCentralityCD extends DoubleVectorHolder<Node, ResponseMessage
 
 
     private void addReplyMessage(ResponseMessage rMessage) {
-        vec2.add(rMessage);
+        responseMessages.add(rMessage);
     }
 
     public Object clone() {
-        StressCentralityCD cced = (StressCentralityCD) super.clone();
-        cced.setFirstValue(new ArrayList<>());
-        cced.setSecondValue(new ArrayList<>());
-        cced.inQueue = new HashMap<>();
-        cced.rst = new RouteSigmaTable();
-        cced.routing = new Routing();
-        cced.firstCycle = true;
-        return cced;
+        StressCentralityCD sccd = null;
+        try {
+            sccd = (StressCentralityCD) super.clone();
+        } catch (CloneNotSupportedException e) { }
+
+        sccd.inQueue = new HashMap<>();
+        sccd.responseMessages = new ArrayList<>();
+        sccd.rst = new RouteSigmaTable();
+        sccd.routing = new Routing();
+
+        return sccd;
     }
 }

@@ -4,10 +4,8 @@ import p2p.deccen.core.transport.ClosenessCentralityPayload;
 import p2p.deccen.core.transport.Message;
 import p2p.deccen.core.transport.RequestMessage;
 import p2p.deccen.core.transport.ResponseMessage;
-import p2p.deccen.core.values.DoubleVectorHolder;
 import peersim.cdsim.CDProtocol;
 import peersim.config.FastConfig;
-import peersim.core.Network;
 import peersim.core.Node;
 
 import java.util.ArrayList;
@@ -20,16 +18,17 @@ import java.util.HashMap;
  * - list of sources from which i already received a PING
  * - list of messages, used to simulate a cycle-based protocol, with message exchanging
  */
-public class ClosenessCentralityCD extends DoubleVectorHolder<Node, Message>
-        implements CDProtocol {
+public class ClosenessCentralityCD implements CDProtocol {
 
     public HashMap<Node, Integer> distances = new HashMap<>();
     public boolean root = false;
     public int sentMessages = 0;
 
+    private ArrayList<Node> discoveredSources = new ArrayList<>();
+    private ArrayList<Message> incomingMessages = new ArrayList<>();
+
     public ClosenessCentralityCD(String prefix) {
     }
-
 
     public void setRoot() {
         this.root = true;
@@ -47,11 +46,11 @@ public class ClosenessCentralityCD extends DoubleVectorHolder<Node, Message>
             root = false;
         }
 
-        for (Message rMessage : vec2) {
+        for (Message rMessage : incomingMessages) {
             processMessage(node, rMessage, pid);
         }
 
-        vec2.clear();
+        incomingMessages.clear();
 
         /**
          * when a node A does not add a new node to the list of reachable ones at cycle k,
@@ -77,11 +76,11 @@ public class ClosenessCentralityCD extends DoubleVectorHolder<Node, Message>
 
         if (message instanceof RequestMessage) {
             /** the source did already send a ping to me */
-            if (vec1.contains(ccp.getOriginalSource()))
+            if (discoveredSources.contains(ccp.getOriginalSource()))
                 return;
 
             sendPong(ccp.getOriginalSource(), node, ccp.getDistance(), pid);
-            vec1.add(ccp.getOriginalSource());
+            discoveredSources.add(ccp.getOriginalSource());
 
             NeighborsProtocol neighborsLinkable = (NeighborsProtocol) node.getProtocol(FastConfig.getLinkable(pid));
             Node[] neighbors = neighborsLinkable.getAllExcept(new Node[] {message.getSource(), ccp.getOriginalSource()});
@@ -116,7 +115,7 @@ public class ClosenessCentralityCD extends DoubleVectorHolder<Node, Message>
     }
 
     private void addMessage(Message rMessage) {
-        this.vec2.add(rMessage);
+        this.incomingMessages.add(rMessage);
     }
 
     public int getDistance(Node node) {
@@ -127,10 +126,15 @@ public class ClosenessCentralityCD extends DoubleVectorHolder<Node, Message>
     }
 
     public Object clone() {
-        ClosenessCentralityCD cced = (ClosenessCentralityCD) super.clone();
-        cced.setFirstValue(new ArrayList<>());
-        cced.setSecondValue(new ArrayList<>());
-        cced.distances = new HashMap<>();
-        return cced;
+        ClosenessCentralityCD cccd = null;
+        try {
+            cccd = (ClosenessCentralityCD) super.clone();
+        } catch (CloneNotSupportedException e) { }
+
+        cccd.distances = new HashMap<>();
+        cccd.discoveredSources = new ArrayList<>();
+        cccd.incomingMessages = new ArrayList<>();
+
+        return cccd;
     }
 }
