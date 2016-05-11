@@ -43,6 +43,13 @@ init.initRoot InitRootNode
 init.initRoot.protocol cc
 init.initRoot.initAll true
 
+
+################### util controls =======================
+
+control.networkcontrol NetworkController
+control.networkcontrol.ccProtocol cc
+control.networkcontrol.scProtocol sc
+
 ################ observer ==============================
 
 # used to print the graph in dot
@@ -59,6 +66,7 @@ control.networktrafficobserver.from CYCLES - 1
 
 # used to check correctness
 control.correctnesscheck CorrectnessCheck
+control.correctnesscheck.ccProtocol cc
 control.correctnesscheck.scProtocol sc
 control.correctnesscheck.file test/testgraph2.dot
 control.correctnesscheck.from CYCLES - 1

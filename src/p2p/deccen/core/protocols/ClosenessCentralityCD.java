@@ -24,8 +24,12 @@ public class ClosenessCentralityCD implements CDProtocol {
     public boolean root = false;
     public int sentMessages = 0;
 
+    /** this list contains sources already discovered by this node (already got a ping message from those) */
     private ArrayList<Node> discoveredSources = new ArrayList<>();
-    private ArrayList<Message> incomingMessages = new ArrayList<>();
+    /** list of incoming messages (Request / Response) */
+    public ArrayList<Message> incomingMessages = new ArrayList<>();
+    /** list of outgoing messages*/
+    public ArrayList<Message> outgoingMessages = new ArrayList<>();
 
     public ClosenessCentralityCD(String prefix) {
     }
@@ -86,7 +90,11 @@ public class ClosenessCentralityCD implements CDProtocol {
             Node[] neighbors = neighborsLinkable.getAllExcept(new Node[] {message.getSource(), ccp.getOriginalSource()});
             sendPing(node, neighbors, ccp.getOriginalSource(), ccp.getDistance() + 1, pid);
         } else {
-            distances.put(message.getSource(), ccp.getDistance());
+            Node source = message.getSource();
+            int distance = ccp.getDistance();
+            if (!distances.containsKey(source) || (distances.get(source) > distance)) {
+                distances.put(source, distance);
+            }
         }
 
     }
@@ -97,8 +105,7 @@ public class ClosenessCentralityCD implements CDProtocol {
     }
 
     private void sendMessage(Node destination, Message rMessage, int pid) {
-        ClosenessCentralityCD cced = (ClosenessCentralityCD) destination.getProtocol(pid);
-        cced.addMessage(rMessage);
+        this.outgoingMessages.add(rMessage);
         sentMessages++;
     }
 
@@ -134,6 +141,7 @@ public class ClosenessCentralityCD implements CDProtocol {
         cccd.distances = new HashMap<>();
         cccd.discoveredSources = new ArrayList<>();
         cccd.incomingMessages = new ArrayList<>();
+        cccd.outgoingMessages = new ArrayList<>();
 
         return cccd;
     }
