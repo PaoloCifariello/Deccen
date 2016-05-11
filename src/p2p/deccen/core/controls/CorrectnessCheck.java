@@ -1,5 +1,6 @@
 package p2p.deccen.core.controls;
 
+import org.graphstream.algorithm.APSP;
 import org.graphstream.algorithm.BetweennessCentrality;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.implementations.DefaultGraph;
@@ -38,31 +39,57 @@ public class CorrectnessCheck implements Control {
 
     public boolean execute() {
 
-        Graph g = new DefaultGraph("g");
+        Graph graph = new DefaultGraph("g");
         FileSource fs = null;
 
         try {
             fs = FileSourceFactory.sourceFor(file);
-            fs.addSink(g);
+            fs.addSink(graph);
             fs.readAll(file);
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            fs.removeSink(g);
+            fs.removeSink(graph);
         }
 
+        APSP apsp = new APSP();
+        apsp.init(graph); // registering apsp as a sink for the graph
+        apsp.setDirected(false); // undirected graph
+        apsp.compute();
+
         BetweennessCentrality bc = new BetweennessCentrality();
-        bc.init(g);
+        bc.init(graph);
+
 //        bc.compute();
 
-        for (int i = 0; i < Network.size(); i++) {
-            Node n = Network.get(i);
+        for (int i = 1; i < Network.size(); i++) {
+            Node node = Network.get(i);
+
+            APSP.APSPInfo info = graph.getNode(Integer.toString(i)).getAttribute(APSP.APSPInfo.ATTRIBUTE_NAME);
+
+            if (!checkClosenessCentralityCorrectness(node, info)) {
+                System.err.println("Error");
+            }
+
 //            Double bcValue = g.getNode(i).getAttribute("Cb");
-            StressCentralityCD sccd = (StressCentralityCD) n.getProtocol(sccdPid);
-            ClosenessCentralityCD cccd = (ClosenessCentralityCD) n.getProtocol(cccdPid);
+            StressCentralityCD sccd = (StressCentralityCD) node.getProtocol(sccdPid);
+
             System.out.println("Expected " + 1 + ", but got " + sccd.betweennessCentrality);
         }
 
-        return false;
+        return true;
+    }
+
+    private boolean checkClosenessCentralityCorrectness(Node node, APSP.APSPInfo info) {
+        ClosenessCentralityCD cccd = (ClosenessCentralityCD) node.getProtocol(cccdPid);
+        for (Node n : cccd.distances.keySet()) {
+            int distance = cccd.getDistance(n);
+            int expectedDistance = (int) info.getLengthTo(String.valueOf(n.getID()));
+
+            if (distance != expectedDistance)
+                return false;
+        }
+
+        return true;
     }
 }
