@@ -12,7 +12,6 @@ import peersim.config.Configuration;
 import peersim.core.Control;
 import peersim.core.Network;
 import peersim.core.Node;
-
 import java.io.IOException;
 
 /**
@@ -28,12 +27,16 @@ public class CorrectnessCheck implements Control {
     private static final String SC_PROTOCOL = "scProtocol";
     private static int sccdPid;
 
+    private static final String DELTA = "delta";
+    private static double deltaValue = 0.001;
+
 
 
     public CorrectnessCheck (String prefix) {
         file = Configuration.getString(prefix + "." + FILE);
         cccdPid = Configuration.getPid(prefix + "." + CC_PROTOCOL);
         sccdPid = Configuration.getPid(prefix + "." + SC_PROTOCOL);
+        deltaValue = Configuration.getDouble(prefix + "." + DELTA);
     }
 
 
@@ -60,7 +63,7 @@ public class CorrectnessCheck implements Control {
         BetweennessCentrality bc = new BetweennessCentrality();
         bc.init(graph);
 
-//        bc.compute();
+        bc.compute();
 
         for (int i = 1; i < Network.size(); i++) {
             Node node = Network.get(i);
@@ -68,13 +71,26 @@ public class CorrectnessCheck implements Control {
             APSP.APSPInfo info = graph.getNode(Integer.toString(i)).getAttribute(APSP.APSPInfo.ATTRIBUTE_NAME);
 
             if (!checkClosenessCentralityCorrectness(node, info)) {
-                System.err.println("Error");
+                System.err.println("Closeness centrality mismatch");
             }
 
-//            Double bcValue = g.getNode(i).getAttribute("Cb");
-            StressCentralityCD sccd = (StressCentralityCD) node.getProtocol(sccdPid);
+            if (!checkBetweennessCentrality(node, graph, i)) {
+                System.err.println("Betweenness centrality mismatch");
+            }
+        }
 
-            System.out.println("Expected " + 1 + ", but got " + sccd.betweennessCentrality);
+        return true;
+    }
+
+    private boolean checkBetweennessCentrality(Node node, Graph graph, int i) {
+        Double expectedValue = graph.getNode(String.valueOf(i)).getAttribute("Cb");
+        StressCentralityCD sccd = (StressCentralityCD) node.getProtocol(sccdPid);
+
+        Double value = sccd.betweennessCentrality;
+
+        if (Math.abs(value - expectedValue) > deltaValue) {
+            System.out.println("Expected " + expectedValue + ", but got " + value);
+            return false;
         }
 
         return true;

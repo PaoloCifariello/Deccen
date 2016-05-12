@@ -12,7 +12,7 @@ public abstract class NetworkedProtocol implements Protocol {
 
     /** list of incoming messages (Request / Response) */
     public ArrayList<Message> incomingMessages = new ArrayList<>();
-    /** list of outgoing messages*/
+    /** list of outgoing messages */
     public ArrayList<Message> outgoingMessages = new ArrayList<>();
 
     public int sentMessages = 0;

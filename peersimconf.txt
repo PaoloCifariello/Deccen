@@ -68,5 +68,6 @@ control.networktrafficobserver.from CYCLES - 1
 control.correctnesscheck CorrectnessCheck
 control.correctnesscheck.ccProtocol cc
 control.correctnesscheck.scProtocol sc
+control.correctnesscheck.delta 0.001
 control.correctnesscheck.file test/dolphin.dot
 control.correctnesscheck.from CYCLES - 1
