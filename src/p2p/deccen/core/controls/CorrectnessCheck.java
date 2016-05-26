@@ -56,8 +56,8 @@ public class CorrectnessCheck implements Control {
         }
 
         APSP apsp = new APSP();
-        apsp.init(graph); // registering apsp as a sink for the graph
-        apsp.setDirected(false); // undirected graph
+        apsp.init(graph);
+        apsp.setDirected(false);
         apsp.compute();
 
         BetweennessCentrality bc = new BetweennessCentrality();

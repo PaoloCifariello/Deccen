@@ -1,7 +1,7 @@
 ################### global variables ===========================
 
 # network size
-SIZE 63
+SIZE 1133
 
 # parameters of periodic execution
 CYCLES SIZE + SIZE + SIZE + SIZE
@@ -25,13 +25,13 @@ protocol.sc.linkable link
 protocol.sc.ccProtocol cc
 protocol.sc.step 1
 # per permettere al Closeness Centrality di stabilizzare tutte le distanze
-protocol.sc.from SIZE + 1
+protocol.sc.from 12#SIZE + 1
 
 
 ################### initialization ======================
 
 init.wire WireFromFile
-init.wire.file test/dolphin.csv
+init.wire.file test/hamsterster.csv
 init.wire.protocol link
 init.wire.undir true
 
@@ -62,12 +62,12 @@ control.graphprinter.until 1
 control.networktrafficobserver NetworkTrafficObserver
 control.networktrafficobserver.ccProtocol cc
 control.networktrafficobserver.scProtocol sc
-control.networktrafficobserver.from CYCLES - 1
+control.networktrafficobserver.from 1
 
 # used to check correctness
 control.correctnesscheck CorrectnessCheck
 control.correctnesscheck.ccProtocol cc
 control.correctnesscheck.scProtocol sc
 control.correctnesscheck.delta 0.001
-control.correctnesscheck.file test/dolphin.dot
+control.correctnesscheck.file test/zachary.dot
 control.correctnesscheck.from CYCLES - 1

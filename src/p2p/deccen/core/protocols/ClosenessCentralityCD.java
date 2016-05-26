@@ -12,18 +12,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
- * This implements the calculation of Closeness Centrality of a node v
+ * This implements the computation of Closeness Centrality of a node v
  *
- * DoubleVectorHolder is used to mantain a double vector of values containing>
- * - list of sources from which i already received a PING
- * - list of messages, used to simulate a cycle-based protocol, with message exchanging
  */
 public class ClosenessCentralityCD extends NetworkedProtocol
         implements CDProtocol {
 
     public HashMap<Node, Integer> distances = new HashMap<>();
     public boolean root = false;
-    public int sentMessages = 0;
 
     /** this list contains sources already discovered by this node (already got a ping message from those) */
     private ArrayList<Node> discoveredSources = new ArrayList<>();
@@ -35,11 +31,6 @@ public class ClosenessCentralityCD extends NetworkedProtocol
         this.root = true;
     }
 
-    /**
-     * This is the standard method the define periodic activity.
-     * The frequency of execution of this method is defined by a
-     * {@link peersim.edsim.CDScheduler} component in the configuration.
-     */
     public void nextCycle(Node node, int pid) {
         if (root) {
             NeighborsProtocol neighbors = (NeighborsProtocol) node.getProtocol(FastConfig.getLinkable(pid));
@@ -107,9 +98,6 @@ public class ClosenessCentralityCD extends NetworkedProtocol
         return totalDistance/totalNodes;
     }
 
-    private void addMessage(Message rMessage) {
-        this.incomingMessages.add(rMessage);
-    }
 
     public int getDistance(Node node) {
         if (distances.containsKey(node))

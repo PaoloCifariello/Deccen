@@ -14,12 +14,10 @@ import java.util.Random;
 public class InitRootNode implements Control {
     private static final String CC_PROTOCOL = "protocol";
     private static final String INIT_ALL = "initAll";
-    /** Protocol identifier; obtained from config property {@link #CC_PROTOCOL}. */
 
     private static int pid ;
     private static boolean initAll = false;
 
-    /** Constructor */
     public InitRootNode(String prefix){
         pid = Configuration.getPid(prefix + "." + CC_PROTOCOL) ;
         initAll = Configuration.getBoolean(prefix + "." + INIT_ALL);

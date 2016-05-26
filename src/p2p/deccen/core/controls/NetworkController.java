@@ -1,14 +1,11 @@
 package p2p.deccen.core.controls;
 
-import p2p.deccen.core.protocols.ClosenessCentralityCD;
 import p2p.deccen.core.protocols.NetworkedProtocol;
 import p2p.deccen.core.transport.Message;
 import peersim.config.Configuration;
 import peersim.core.Control;
 import peersim.core.Network;
 import peersim.core.Node;
-
-import java.util.ArrayList;
 
 /**
  * Created by paolocifariello.

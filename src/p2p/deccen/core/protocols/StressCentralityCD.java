@@ -50,7 +50,10 @@ public class StressCentralityCD extends NetworkedProtocol
         processIncomingMessages(node, pid);
 
         /** RouteSigmaTable is completed partially at each cycle */
-        fillRouteSigmaTable(node);
+        if (rst.fill(node)) {
+            stressCentrality = rst.computeStressCentrality(node);
+            betweennessCentrality = rst.computeBetwennessCentrality(node);
+        }
     }
 
     private void processIncomingMessages(Node node, int pid) {
@@ -95,15 +98,14 @@ public class StressCentralityCD extends NetworkedProtocol
         StressCentralityPayload scp = (StressCentralityPayload) rMessage.getPayload();
         Node originalSource = scp.getOriginalSource();
         Node originalDestination = scp.getOriginalDestination();
-        /** node is on at least 1 min path from originalSource to originalDestination */
 
+        /** node is on at least 1 min path from originalSource to originalDestination */
         if (node.equals(originalSource) && !rst.containsRoute(originalSource, originalDestination)) { // I am originalSource
             rst.addRoute(originalSource, originalDestination, new Sigma(scp.getMinPaths(), scp.getMinPaths()));
         } else {
             ClosenessCentralityCD cccd = (ClosenessCentralityCD) node.getProtocol(cccdPid);
             /** In this case node is on at least 1 minimum path from originalSource to originalDestination */
             if (cccd.getDistance(originalSource) + cccd.getDistance(originalDestination) == scp.getDistance()) {
-                // mi segno che sono sul min path da originalSource a originalDestination
                 Sigma s;
                 if (rst.containsRoute(originalSource, originalDestination)) {
                     s = rst.getSigma(originalSource, originalDestination);
@@ -149,10 +151,6 @@ public class StressCentralityCD extends NetworkedProtocol
             int minPathsFromSource = 0;
             final int distanceFromSource = getDistanceFromSource(queue);
 
-            /** - this phase is needed in to discard request messages with 'wrong' distance
-             *    (it happens when A sends a message to C at cycle k, but C doesn't process the message at k.
-             *    At cycle k+1 B sends a message to C with distance k+1. In this cycle C will process messages from
-             *    A and B with distances k, k+1, only the first message needs to be processed) */
             queue.removeIf(rMessage -> {
                 StressCentralityPayload scp = (StressCentralityPayload) rMessage.getPayload();
                 return scp.getDistance() != distanceFromSource;
@@ -176,14 +174,6 @@ public class StressCentralityCD extends NetworkedProtocol
             /** 3- phase, forwarding request messages to all neighbors */
             NeighborsProtocol neighbors = (NeighborsProtocol) node.getProtocol(FastConfig.getLinkable(pid));
             sendPing(node, neighbors.getAllExcept(originalSource), originalSource, distanceFromSource + 1, minPathsFromSource, pid);
-        }
-    }
-
-
-    private void fillRouteSigmaTable(Node node) {
-        if (rst.fill(node)) {
-            this.stressCentrality = rst.computeStressCentrality(node);
-            this.betweennessCentrality = rst.computeBetwennessCentrality(node);
         }
     }
 

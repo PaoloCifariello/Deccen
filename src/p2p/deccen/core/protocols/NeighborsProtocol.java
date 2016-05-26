@@ -4,7 +4,6 @@ package p2p.deccen.core.protocols;
  * Created by paolocifariello.
  */
 
-import peersim.config.Configuration;
 import peersim.core.Linkable;
 import peersim.core.Node;
 import peersim.core.Protocol;
@@ -13,30 +12,20 @@ import java.util.ArrayList;
 
 /** A protocol that stores links  */
 public class NeighborsProtocol implements Protocol, Linkable {
-    /**
-     * Neighbors
-     */
+
     protected ArrayList<Node> neighbors;
 
-    /**
-     * Constructor
-     */
     public NeighborsProtocol(String prefix) {
         /** get the parameter value from configuration file . */
         neighbors = new ArrayList<>();
     }
 
-    /**
-     * Returns true if the given node is a member of the neighbor set .
-     */
-
+    /** Returns true if the given node is a member of the neighbor set . */
     public boolean contains(Node n) {
         return neighbors.contains(n);
     }
 
-    /**
-     * Add a neighbor to the current set of neighbors.
-     */
+    /** Add a neighbor to the current set of neighbors. */
     public boolean addNeighbor(Node n) {
         if (this.contains(n))
             return false;
@@ -45,23 +34,16 @@ public class NeighborsProtocol implements Protocol, Linkable {
         return true;
     }
 
-    /**
-     * Returns the neighbor with the given index.
-     */
+    /** Returns the neighbor with the given index. */
     public Node getNeighbor(int i) {
         return neighbors.get(i);
     }
 
-    /**
-     * Returns the size of the neighbor list.
-     */
+    /** Returns the size of the neighbor list. */
     public int degree() {
         return neighbors.size();
     }
 
-    /**
-     * Cloneable
-     */
     public Object clone() {
         NeighborsProtocol np = null;
         try {
@@ -73,9 +55,6 @@ public class NeighborsProtocol implements Protocol, Linkable {
         return np;
     }
 
-    /**
-     * A possibility for optimization .
-     */
     public void pack() {
     }
 

@@ -32,9 +32,6 @@ public class NetworkTrafficObserver implements Control {
             ClosenessCentralityCD cccd = (ClosenessCentralityCD) n.getProtocol(cccdPid);
             StressCentralityCD sccd = (StressCentralityCD) n.getProtocol(sccdPid);
 
-            int sentMessages = cccd.sentMessages + sccd.sentMessages;
-
-            System.out.println("Node " + nodeId + " has sent " + sentMessages);
             totalMessages += cccd.sentMessages + sccd.sentMessages;
         }
 
