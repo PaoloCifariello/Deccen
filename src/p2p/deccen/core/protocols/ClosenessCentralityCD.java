@@ -20,6 +20,7 @@ public class ClosenessCentralityCD extends NetworkedProtocol
 
     public HashMap<Node, Integer> distances = new HashMap<>();
     public boolean root = false;
+    public double closenessCentrality = 0;
 
     /** this list contains sources already discovered by this node (already got a ping message from those) */
     private ArrayList<Node> discoveredSources = new ArrayList<>();
@@ -43,6 +44,8 @@ public class ClosenessCentralityCD extends NetworkedProtocol
         }
 
         incomingMessages.clear();
+
+        closenessCentrality = this.calculateClosenessCentrality();
     }
 
     private void sendPing(Node source, Node[] destinations, Node originalSource, int distance, int pid) {
@@ -86,12 +89,12 @@ public class ClosenessCentralityCD extends NetworkedProtocol
         sendMessage(rMessage);
     }
 
-    private int calculateClosenessCentrality() {
-        int totalDistance = 0;
-        int totalNodes = 0;
+    private double calculateClosenessCentrality() {
+        double totalDistance = 0;
+        int totalNodes = 1;
 
         for (Node n : distances.keySet()) {
-            totalDistance+= distances.get(n);
+            totalDistance += distances.get(n);
             totalNodes++;
         }
 
